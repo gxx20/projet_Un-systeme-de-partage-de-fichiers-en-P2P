@@ -115,7 +115,7 @@ class ProjetTest(unittest.TestCase):
                str(self.central.server_address[1]), "--dossier", str(dossier),
                "--cert", str(self.cert), "--utilisateur", "lecteur", "--inscrire"]
         resultat = subprocess.run(cmd, input="secret\nchercher réseau\ntrier hote\nprendre 1\nquitter\n",
-                                  text=True, capture_output=True, timeout=15)
+                                  text=True, capture_output=True, timeout=15, start_new_session=True)
         self.assertEqual(resultat.returncode, 0, resultat.stderr)
         self.assertIn("1. a.txt", resultat.stdout)
         self.assertIn("Fichier téléchargé et partagé", resultat.stdout)

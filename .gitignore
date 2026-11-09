@@ -5,3 +5,4 @@ certs/
 *.sqlite*
 demo/
 .DS_Store
+certs-lan/
