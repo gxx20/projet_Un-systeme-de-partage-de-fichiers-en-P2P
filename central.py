@@ -89,13 +89,16 @@ class Session(socketserver.BaseRequestHandler):
             port, catalogue = msg["port"], msg["catalogue"]
             if type(port) is not int or not 1 <= port <= 65535 or not isinstance(catalogue, dict):
                 raise ValueError("Annonce invalide")
+            hostname = msg.get("hostname", self.client_address[0])
+            if not isinstance(hostname, str) or not hostname.strip() or len(hostname) > 255 or not hostname.isprintable():
+                raise ValueError("Nom d’hôte invalide")
             annonces = []
             for nom, description in catalogue.items():
                 nom_valide(nom)
                 if not isinstance(description, str) or not description.strip():
                     raise ValueError("Description manquante")
                 annonces.append(dict(nom=nom, description=description,
-                                     hote=self.client_address[0], port=port))
+                                     hostname=hostname, hote=self.client_address[0], port=port))
             with self.server.verrou:
                 self.server.pairs[self] = annonces
             return {}
@@ -106,7 +109,8 @@ class Session(socketserver.BaseRequestHandler):
             with self.server.verrou:
                 lignes = [a for groupe in self.server.pairs.values() for a in groupe
                           if mot.casefold() in a["description"].casefold()]
-            return {"resultats": sorted(lignes, key=lambda a: (a[tri].casefold(),
+            champ = "hostname" if tri == "hote" else "nom"
+            return {"resultats": sorted(lignes, key=lambda a: (a[champ].casefold(),
                                        a["nom"].casefold(), a["hote"], a["port"]))}
         raise ValueError("Commande inconnue")
 

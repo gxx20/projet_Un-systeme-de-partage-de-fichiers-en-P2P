@@ -11,7 +11,7 @@ from transfert import Partage, ServiceFichiers, telecharger
 
 
 def publier(flux, service):
-    requete(flux, "publier", port=service.server_address[1],
+    requete(flux, "publier", port=service.server_address[1], hostname=socket.gethostname(),
             catalogue=service.partage.actualiser())
 
 
@@ -36,7 +36,7 @@ def interface(flux, service):
             elif commande == "trier":
                 if arg not in ("nom", "hote"):
                     raise ValueError("Tri attendu : nom ou hote")
-                resultats.sort(key=lambda a: (a[arg].casefold(), a["nom"].casefold(),
+                resultats.sort(key=lambda a: ((a.get("hostname", a["hote"]) if arg == "hote" else a["nom"]).casefold(), a["nom"].casefold(),
                                                a["hote"], a["port"]))
             elif commande == "prendre":
                 numero = int(arg)
@@ -60,7 +60,7 @@ def interface(flux, service):
             if not resultats:
                 print("Aucun résultat.")
             for i, a in enumerate(resultats, 1):
-                print(f"{i}. {a['nom']} — {a['description']} [{a['hote']}:{a['port']}]")
+                print(f"{i}. {a['nom']} — {a['description']} — {a.get('hostname', a['hote'])} [{a['hote']}:{a['port']}]")
         except ValueError as exc:
             print(f"Erreur : {exc}")
 
@@ -73,17 +73,18 @@ def main():
     p.add_argument("--port", type=int, default=0, help="port du pair (0 = automatique)")
     p.add_argument("--dossier", required=True)
     p.add_argument("--cert", default="certs/central.crt")
-    p.add_argument("--utilisateur", required=True)
+    p.add_argument("--utilisateur", help="identifiant (demandé si omis)")
     p.add_argument("--inscrire", action="store_true", help="créer le compte au premier lancement")
     args = p.parse_args()
     partage = Partage(args.dossier)
     contexte = ssl.create_default_context(cafile=args.cert)
+    utilisateur = args.utilisateur or input("Identifiant : ").strip()
     mot = getpass.getpass("Mot de passe : ")
     with ExitStack() as pile:
         sock = pile.enter_context(socket.create_connection((args.central, args.port_central), 10))
         tls = pile.enter_context(contexte.wrap_socket(sock, server_hostname=args.central))
         flux = pile.enter_context(tls.makefile("rwb"))
-        requete(flux, "inscrire" if args.inscrire else "connexion", nom=args.utilisateur, mot=mot)
+        requete(flux, "inscrire" if args.inscrire else "connexion", nom=utilisateur, mot=mot)
         service = pile.enter_context(ServiceFichiers((args.ecoute, args.port), partage))
         threading.Thread(target=service.serve_forever, daemon=True).start()
         pile.callback(service.shutdown)

@@ -64,6 +64,7 @@ class ProjetTest(unittest.TestCase):
         publier(a, sa)
         def sources():
             return requete(c, "chercher", mot="ROUT", tri="hote")["resultats"]
+        self.assertEqual(sources()[0]["hostname"], socket.gethostname())
         telecharger(sb.partage, sources()[0])
         publier(b, sb)
         self.assertEqual(len(sources()), 2)
@@ -104,6 +105,25 @@ class ProjetTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             partage.ouvrir("../central.key")
 
+    def test_tri_des_hotes_et_recherche_vide(self):
+        a, sa = self.pair("alice")
+        b, sb = self.pair("bob")
+        for flux, service, hostname, nom in [(a, sa, "zeta", "a.txt"), (b, sb, "alpha", "z.txt")]:
+            requete(flux, "publier", port=service.server_address[1], hostname=hostname,
+                    catalogue={nom: "Réseaux TCP"})
+        for tri, attendu in [("nom", ["zeta", "alpha"]), ("hote", ["alpha", "zeta"])]:
+            lignes = requete(a, "chercher", mot="tcp", tri=tri)["resultats"]
+            self.assertEqual([ligne["hostname"] for ligne in lignes], attendu)
+        self.assertEqual(requete(a, "chercher", mot="absent")["resultats"], [])
+
+    def test_refus_upload(self):
+        _, service = self.pair("alice")
+        with socket.create_connection(service.server_address, timeout=5) as sock:
+            with sock.makefile("rwb") as flux:
+                with self.assertRaisesRegex(ValueError, "téléchargement"):
+                    requete(flux, "upload", nom="intrus.txt")
+        self.assertEqual(list(service.partage.dossier.iterdir()), [])
+
     def test_commandes_terminal(self):
         a, sa = self.pair("source")
         for nom in ["z.txt", "a.txt"]:
@@ -113,8 +133,8 @@ class ProjetTest(unittest.TestCase):
         dossier = self.tmp / "destination"
         cmd = [sys.executable, str(RACINE / "pair.py"), "--port-central",
                str(self.central.server_address[1]), "--dossier", str(dossier),
-               "--cert", str(self.cert), "--utilisateur", "lecteur", "--inscrire"]
-        resultat = subprocess.run(cmd, input="secret\nchercher réseau\ntrier hote\nprendre 1\nquitter\n",
+               "--cert", str(self.cert), "--inscrire"]
+        resultat = subprocess.run(cmd, input="lecteur\nsecret\nchercher réseau\ntrier hote\nprendre 1\nquitter\n",
                                   text=True, capture_output=True, timeout=15, start_new_session=True)
         self.assertEqual(resultat.returncode, 0, resultat.stderr)
         self.assertIn("1. a.txt", resultat.stdout)

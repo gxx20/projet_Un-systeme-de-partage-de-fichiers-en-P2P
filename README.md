@@ -35,7 +35,7 @@ Dans le troisième, démarrer Bob :
 python3 pair.py --utilisateur bob --inscrire --port 5002 --dossier demo/bob
 ```
 
-Chaque utilisateur choisit son mot de passe à l'invite. `--inscrire` crée le compte et ouvre la session. Pour les lancements ultérieurs, retirer cette option et saisir le même mot de passe.
+Chaque utilisateur choisit son mot de passe à l'invite. Si `--utilisateur` est omis, le pair demande aussi l'identifiant. `--inscrire` crée le compte et ouvre la session. Pour les lancements ultérieurs, retirer cette option et saisir le même mot de passe.
 
 1. Chez Bob, saisir `chercher routage`. Le résultat indique `cours.txt` à l'adresse du pair Alice sur le port 5001.
 2. Saisir `prendre 1`. Bob vérifie l'empreinte du transfert, enregistre le fichier et sa description, puis publie son catalogue.
@@ -56,7 +56,7 @@ Relier les deux machines au même réseau local. Exemple avec le central sur la 
 
 - Sur A, générer un certificat pour son adresse avec `sh certificat.sh 192.168.1.20 certs-lan`. Conserver la clé privée sur A. Transmettre uniquement `central.crt` au binôme par un canal de confiance.
 - Lancer le central sur A avec `python3 central.py --hote 0.0.0.0 --cert certs-lan/central.crt --cle certs-lan/central.key`.
-- Sur chaque machine, lancer le pair avec les arguments de la démonstration et ajouter `--central 192.168.1.20 --cert CHEMIN/central.crt`. Chaque pair annonce le port sur lequel il écoute. Le central utilise l'adresse IP source de sa connexion.
+- Sur chaque machine, lancer le pair avec les arguments de la démonstration et ajouter `--central 192.168.1.20 --cert CHEMIN/central.crt`. Chaque pair annonce son nom d’hôte et le port sur lequel il écoute. Le central utilise l'adresse IP source de sa connexion.
 - Si un pare-feu filtre les connexions entrantes, autoriser le port TCP 5000 sur A et le port de partage choisi sur chaque machine. La démonstration suppose que les pairs peuvent se joindre directement.
 
 ## Fonctionnement
