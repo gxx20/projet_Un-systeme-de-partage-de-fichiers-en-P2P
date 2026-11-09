@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+certs/
+*.sqlite*
+demo/
+.DS_Store
